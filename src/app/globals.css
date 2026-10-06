@@ -1,26 +1,534 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+    monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  overflow: hidden;
+  background: #5e7fbe;
+}
+
+/* ---------- 主题变量 ---------- */
+
+[data-os] {
+  --menu: rgba(222, 237, 255, 0.55);
+  --menu-ink: #22304c;
+  --menu-hover: rgba(34, 48, 76, 0.1);
+  --card: rgba(255, 255, 255, 0.5);
+  --card-border: rgba(255, 255, 255, 0.7);
+  --ink: #1e2a44;
+  --ink-sub: #5b6780;
+  --dock: rgba(255, 255, 255, 0.42);
+  --dock-border: rgba(255, 255, 255, 0.55);
+  --tile: rgba(255, 255, 255, 0.66);
+  --rail: rgba(255, 255, 255, 0.26);
+  --win: #fafbfd;
+  --drop-bg: rgba(252, 253, 255, 0.94);
+  --sel: rgba(255, 255, 255, 0.28);
+  --accent: #4a72c4;
+
+  /* 材质系统：两级阴影 + 玻璃高光强度 + 材质底色 */
+  --shadow-contact: 0 2px 6px rgba(15, 23, 42, 0.1);
+  --shadow-ambient: 0 16px 40px rgba(15, 23, 42, 0.12);
+  --hl-top: 0.25;
+  --hl-ring: 0.12;
+  --mat-thin: rgba(222, 237, 255, 0.55);
+  --mat-deep: rgba(255, 255, 255, 0.42);
+}
+
+[data-os="violet"] {
+  --accent: #7c5cd6;
+}
+
+[data-os="green"] {
+  --accent: #2f8f63;
+}
+
+[data-os="dark"] {
+  --menu: rgba(10, 12, 18, 0.5);
+  --menu-ink: #f3f5fa;
+  --menu-hover: rgba(255, 255, 255, 0.12);
+  --card: rgba(24, 27, 36, 0.55);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --ink: #f3f5fa;
+  --ink-sub: #a6adbf;
+  --dock: rgba(18, 20, 28, 0.55);
+  --dock-border: rgba(255, 255, 255, 0.12);
+  --tile: rgba(255, 255, 255, 0.1);
+  --rail: rgba(255, 255, 255, 0.08);
+  --win: #1c1f28;
+  --drop-bg: rgba(30, 33, 42, 0.96);
+  --sel: rgba(255, 255, 255, 0.14);
+  --accent: #8fb0f5;
+
+  /* dark 主题：高光减淡，材质底色更沉 */
+  --mat-thin: rgba(14, 16, 22, 0.45);
+  --mat-deep: rgba(18, 20, 28, 0.55);
+  --hl-top: 0.1;
+  --hl-ring: 0.06;
+}
+
+/* ---------- 壁纸（四层交叉淡入） ---------- */
+
+.wall-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.wall-layer.wall-active {
+  opacity: 1;
+}
+
+.wall-sky {
+  /* 从原站截图逐点采样的渐变 */
+  background: linear-gradient(
+    180deg,
+    #33619e 0%,
+    #507caf 28%,
+    #7198c3 52%,
+    #95b6d3 76%,
+    #c2d4e3 100%
+  );
+}
+
+.wall-violet {
+  background: linear-gradient(180deg, #6f63a8 0%, #9e90cc 52%, #e0d9ee 100%);
+}
+
+.wall-green {
+  background: linear-gradient(180deg, #588e73 0%, #97bfa3 52%, #e1ecdf 100%);
+}
+
+.wall-dark {
+  background: linear-gradient(180deg, #171a22 0%, #343a4a 55%, #626a80 100%);
+}
+
+/* 动态壁纸：按真实时间在四组渐变间插值（--dawn-blend 为「上方那组」的透明度） */
+.wall-dawn {
+  background: linear-gradient(
+    180deg,
+    #5b6ba8 0%,
+    #9a7fa8 36%,
+    #d99a8c 70%,
+    #f3c9a0 100%
+  );
+}
+
+.wall-day {
+  /* 以原 sky 为基准，饱和度略提 */
+  background: linear-gradient(
+    180deg,
+    #2f5d9d 0%,
+    #4d7bb0 28%,
+    #6f97c4 52%,
+    #95b7d6 76%,
+    #c4d7e6 100%
+  );
+}
+
+.wall-dusk {
+  background: linear-gradient(
+    180deg,
+    #3f3f7a 0%,
+    #7d5f96 34%,
+    #c9748a 68%,
+    #efa973 100%
+  );
+}
+
+.wall-night {
+  background: linear-gradient(
+    180deg,
+    #0b1020 0%,
+    #16203c 45%,
+    #2a3a63 78%,
+    #3d5080 100%
+  );
+}
+
+/* 胶片颗粒 */
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.6'/></svg>");
+}
+
+/* ---------- 表面 ---------- */
+
+/* ---------- 三级玻璃材质（组件只换类名） ---------- */
+@layer components {
+  /* 薄玻璃：菜单栏。背景取主题校准色 --mat-thin（保持原站取色） */
+  .glass-thin {
+    background: var(--mat-thin);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  }
+
+  /* 卡片玻璃：组件卡。blur18 + 顶部受光边 + 内描边 + 两级阴影 */
+  .glass-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(18px) saturate(1.3);
+    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    color: var(--ink);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, var(--hl-top)),
+      inset 0 0 0 1px rgba(255, 255, 255, var(--hl-ring)),
+      var(--shadow-contact),
+      var(--shadow-ambient);
+    transition: background-color 0.35s ease, border-color 0.35s ease;
+  }
+
+  /* 深玻璃：Dock / 锁屏胶囊 / 解锁按钮。blur22 + 两级阴影 */
+  .glass-deep {
+    background: var(--mat-deep);
+    backdrop-filter: blur(22px) saturate(1.5);
+    -webkit-backdrop-filter: blur(22px) saturate(1.5);
+    box-shadow: var(--shadow-contact), var(--shadow-ambient);
+  }
+
+  /* 通用浮起阴影（脱离材质类单独加阴影时用） */
+  .float-shadow {
+    box-shadow: var(--shadow-contact), var(--shadow-ambient);
+  }
+}
+
+.os-window {
+  /* 实色背景：避免 backdrop-filter 与开窗动画叠加时产生合成鬼影 */
+  background: var(--win);
+  color: var(--ink);
+  box-shadow:
+    var(--shadow-contact),
+    var(--shadow-ambient);
+}
+
+.os-drop {
+  background: var(--drop-bg);
+  color: var(--ink);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow:
+    var(--shadow-contact),
+    var(--shadow-ambient);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 13px;
+  width: 100%;
+  text-align: left;
+}
+
+.menu-item:hover:not(:disabled) {
+  background: rgba(125, 140, 180, 0.18);
+}
+
+.menu-item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ---------- 动画 ---------- */
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-pop {
+  animation: pop 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+/* 右键菜单出现：scale 0.96→1 + 淡入 120ms（仅 transform/opacity） */
+@keyframes ctx-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ctx-pop {
+  animation: ctx-pop 120ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  transform-origin: top left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ctx-pop {
+    animation: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease both;
+}
+
+/* ---------- 开机 / 锁屏 ---------- */
+
+.lock-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  /* 背景与 blur 来自 .glass-deep；这里只叠加胶囊内描边 + 接触阴影 */
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    var(--shadow-contact);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.lock-pill:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* ---------- 动效系统 ---------- */
+
+/* 入场序列：解锁后 data-enter 翻转为 1 时各元素按 --enter-delay 依次入场。
+   动画挂在无 backdrop-filter 的包装元素上（红线1）。 */
+@keyframes enter-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes enter-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes enter-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  62% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Dock 外壳带 -50% 水平居中，入场时需保留 */
+@keyframes enter-dock {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 16px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+[data-enter="1"] .enter-down {
+  animation: enter-down 460ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+[data-enter="1"] .enter-up {
+  animation: enter-up 460ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+[data-enter="1"] .enter-right {
+  animation: enter-right 480ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+[data-enter="1"] .enter-pop {
+  animation: enter-pop 420ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+[data-enter="1"] .enter-dock {
+  animation: enter-dock 480ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+/* 组件面板：仅桌面端参与入场序列；<lg 为受控抽屉，transform 交给 translate-x 控制 */
+@media (min-width: 1024px) {
+  [data-enter="1"] .widget-panel-enter {
+    animation: enter-right 480ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+    animation-delay: 260ms;
+  }
+}
+
+/* 时钟数字滚动（纯文本 span，红线1安全） */
+@keyframes digit-in {
+  from {
+    transform: translateY(48%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes digit-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-48%);
+    opacity: 0;
+  }
+}
+
+.roll-in {
+  animation: digit-in 130ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+
+.roll-out {
+  animation: digit-out 130ms ease-in both;
+}
+
+/* 主题切换涟漪：位置与尺寸由内联样式给定，scale 由 JS 翻转触发 transition */
+.ripple {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.16) 55%,
+    rgba(255, 255, 255, 0) 72%
+  );
+  transition:
+    transform 0.6s cubic-bezier(0.22, 0.7, 0.3, 1),
+    opacity 0.6s ease-out;
+  will-change: transform, opacity;
+}
+
+/* ---------- 工具 ---------- */
+
+/* iOS squircle：优先 SVG objectBoundingBox 裁剪，不支持 clip-path 时退回 border-radius */
+.squircle {
+  border-radius: 22.37%;
+}
+
+@supports (clip-path: path("M 0 0 L 1 1")) {
+  .squircle {
+    clip-path: url(#ga-squircle-clip);
+    border-radius: 0;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* 小组件编辑模式：卡片轻微抖动（纯 transform，rotate ±1deg 交替） */
+@keyframes widget-shake {
+  from {
+    transform: rotate(-1deg);
+  }
+  to {
+    transform: rotate(1deg);
+  }
+}
+
+.widget-shake {
+  animation: widget-shake 0.3s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* 今日柱状图呼吸（opacity 0.8↔1；该柱不含 backdrop-filter，可用 opacity 动画） */
+@keyframes bar-breathe {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.bar-breathe {
+  animation: bar-breathe 2s ease-in-out infinite;
+}
+
+/* 系统级「减弱动态效果」：所有动画/过渡瞬时完成（保留状态切换本身） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
