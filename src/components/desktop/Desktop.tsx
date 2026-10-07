@@ -9,6 +9,7 @@ import {
   type ThemeId,
 } from "@/lib/games";
 import { usePrefersReducedMotion } from "@/lib/motion";
+import { applyCursor } from "@/lib/cursor";
 import { useWindowStore, topWindowId } from "@/stores/windowStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import {
@@ -27,6 +28,7 @@ import Dock from "./Dock";
 import WindowLayer from "./GameWindow";
 import LockScreen from "./LockScreen";
 import ContextMenu from "./ContextMenu";
+import SettingsDialog from "./SettingsDialog";
 import { SquircleDefs } from "./icons";
 
 interface Ripple {
@@ -60,18 +62,22 @@ function ThemeRipple({ x, y, size }: Ripple) {
 
 export default function Desktop() {
   const [theme, setTheme] = useState<ThemeId>("sky");
-  const [selected, setSelected] = useState<GameId | null>(null);
   const [locked, setLocked] = useState(true);
   const [entered, setEntered] = useState(false);
   const [ripples, setRipples] = useState<Ripple[]>([]);
   const [iconsKey, setIconsKey] = useState(0);
   // <lg 视口下的组件抽屉（≥lg 常驻，该状态被忽略）
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // 设置页（居中弹层）
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  // 轻量提示：启动游戏的反馈（成功 / 未配置路径 / 失败）
+  const [toasts, setToasts] = useState<{ id: number; text: string }[]>([]);
   const reduced = usePrefersReducedMotion();
 
   const windows = useWindowStore((s) => s.windows);
   const followGame = useSettingsStore((s) => s.followGame);
   const setFollowGame = useSettingsStore((s) => s.setFollowGame);
+  const cursor = useSettingsStore((s) => s.cursor);
 
   // 「主题跟随游戏」：最顶层窗口为游戏时用该游戏的主题，否则回退到手动主题
   const topWin = windows.find((w) => w.id === topWindowId(windows));
@@ -84,10 +90,17 @@ export default function Desktop() {
     useSettingsStore.getState().hydrate();
   }, []);
 
-  // 解锁后：置为已入场（触发一次性入场序列）；若从游戏胶囊进入，稍等动画播完再弹窗
+  // 鼠标指针：形状 / 渐变 / 大小变化时重新生成光标图并写入 --cursor
+  useEffect(() => {
+    applyCursor(cursor);
+  }, [cursor]);
+
+  // 解锁退场开始：立即启动桌面入场序列（与锁屏退场交叉溶解，避免二次刷新）
+  const handleExitStart = useCallback(() => setEntered(true), []);
+
+  // 锁屏退场结束：卸载锁屏；若从游戏胶囊进入，稍等动画播完再弹窗
   const handleUnlock = (g: GameId | null) => {
     setLocked(false);
-    setEntered(true);
     if (g) window.setTimeout(() => useWindowStore.getState().open(g), 650);
   };
 
@@ -124,9 +137,39 @@ export default function Desktop() {
     setDrawerOpen(false);
   }, []);
 
-  // 整理图标：清除选中并重放图标入场动画（重排观感）
+  const pushToast = useCallback((text: string) => {
+    const id = Date.now() + Math.random();
+    setToasts((t) => [...t, { id, text }]);
+    window.setTimeout(
+      () => setToasts((t) => t.filter((x) => x.id !== id)),
+      2600,
+    );
+  }, []);
+
+  // 双击桌面图标：调用本地接口启动游戏（路径在 games.ts 的 exePath 配置）
+  const launchGame = useCallback(
+    async (id: GameId) => {
+      const name = GAMES.find((g) => g.id === id)?.name ?? "游戏";
+      try {
+        const res = await fetch("/api/launch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+        const data = (await res.json().catch(() => null)) as
+          | { ok?: boolean; error?: string }
+          | null;
+        if (res.ok && data?.ok) pushToast(`正在启动 ${name}…`);
+        else pushToast(data?.error ?? `启动 ${name} 失败`);
+      } catch {
+        pushToast("启动失败：无法连接本地服务");
+      }
+    },
+    [pushToast],
+  );
+
+  // 整理图标：重放图标入场动画（重排观感）
   const tidyIcons = useCallback(() => {
-    setSelected(null);
     setIconsKey((k) => k + 1);
   }, []);
 
@@ -167,7 +210,7 @@ export default function Desktop() {
       if (kind === "game-icon" && gameId) {
         return {
           items: [
-            { label: "打开", onClick: () => openGame(gameId) },
+            { label: "启动游戏", onClick: () => void launchGame(gameId) },
             { label: "固定到 Dock", disabled: true },
             { label: "移除", danger: true, disabled: true },
           ],
@@ -183,7 +226,7 @@ export default function Desktop() {
       }
       return null;
     },
-    [handleTheme, tidyIcons, openGame, openOrRestore],
+    [handleTheme, tidyIcons, openGame, launchGame, openOrRestore],
   );
 
   const handleContextMenu = useCallback(
@@ -221,7 +264,11 @@ export default function Desktop() {
         return;
       }
       if (e.key === "Escape") {
-        // 优先级：抽屉（最顶层）> 右键菜单（由 ContextMenu 处理）> 最顶层窗口
+        // 优先级：设置弹窗（最顶层）> 抽屉 > 右键菜单（由 ContextMenu 处理）> 最顶层窗口
+        if (settingsOpen) {
+          setSettingsOpen(false);
+          return;
+        }
         if (drawerOpen) {
           setDrawerOpen(false);
           return;
@@ -233,14 +280,13 @@ export default function Desktop() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [drawerOpen]);
+  }, [drawerOpen, settingsOpen]);
 
   return (
     <div
       data-os={effectiveTheme}
       data-enter={entered ? "1" : "0"}
       className="relative h-dvh select-none overflow-hidden text-[var(--ink)]"
-      onClick={() => setSelected(null)}
       onContextMenu={handleContextMenu}
       onAnimationEnd={(e) => {
         // 入场动画播完立即摘掉 enter-* 类：避免 fill-mode 永久挂层导致合成器停在中间帧
@@ -265,6 +311,8 @@ export default function Desktop() {
         onOpenGame={openGame}
         drawerOpen={drawerOpen}
         onToggleDrawer={() => setDrawerOpen((v) => !v)}
+        settingsOpen={settingsOpen}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
       <LeftRail />
 
@@ -275,12 +323,7 @@ export default function Desktop() {
           style={{ "--enter-delay": "100ms" } as React.CSSProperties}
         >
           <ProfileBlock />
-          <DesktopIcons
-            key={iconsKey}
-            selected={selected}
-            onSelect={setSelected}
-            onOpen={openGame}
-          />
+          <DesktopIcons key={iconsKey} onLaunch={launchGame} />
         </div>
       </main>
 
@@ -304,8 +347,17 @@ export default function Desktop() {
       {/* 右键菜单层 */}
       <ContextMenu />
 
+      {/* 设置页（居中弹层，盖在窗口之上、提示之下） */}
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
       {/* 开机 / 锁屏覆盖层 */}
-      {locked && <LockScreen theme={effectiveTheme} onUnlock={handleUnlock} />}
+      {locked && (
+        <LockScreen
+          theme={effectiveTheme}
+          onExitStart={handleExitStart}
+          onUnlock={handleUnlock}
+        />
+      )}
 
       {/* 派蒙助手（右下角，可拖拽） */}
       {!locked && <PaimonAssistant />}
@@ -314,6 +366,20 @@ export default function Desktop() {
       {ripples.map((r) => (
         <ThemeRipple key={r.id} {...r} />
       ))}
+
+      {/* 启动游戏等操作的轻量提示 */}
+      {toasts.length > 0 && (
+        <div className="pointer-events-none absolute inset-x-0 top-16 z-[60] flex flex-col items-center gap-2">
+          {toasts.map((t) => (
+            <div
+              key={t.id}
+              className="enter-pop glass-deep rounded-full border border-[var(--dock-border)] px-4 py-2 text-[12px] text-[var(--ink)] shadow-lg"
+            >
+              {t.text}
+            </div>
+          ))}
+        </div>
+      )}
 
       <footer className="absolute bottom-5 left-5 z-10 text-[10px] tracking-[0.22em] text-[var(--ink)]/50">
         © 2026 Game-Agent · DEMO

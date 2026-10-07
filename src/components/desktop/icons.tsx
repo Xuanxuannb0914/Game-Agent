@@ -278,44 +278,6 @@ export function DownloadIcon({ className }: { className?: string }) {
   );
 }
 
-/** 派蒙助手头像（内联 SVG，无需外部素材） */
-export function PaimonIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" className={className} aria-hidden>
-      <defs>
-        <radialGradient id="ga-paimon-bg" cx="35%" cy="26%" r="82%">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="55%" stopColor="#dceafb" />
-          <stop offset="100%" stopColor="#a6c5ee" />
-        </radialGradient>
-      </defs>
-      <circle cx="32" cy="32" r="32" fill="url(#ga-paimon-bg)" />
-      {/* 白色头发 */}
-      <path
-        d="M32 9c-9.4 0-16.5 6.2-16.5 15.2 0 3.6 1 6.6 2.8 8.8l1.8-7.4 2.9 5.6 2-8.4 3 7.4 3.1-7.4 2.9 8.4 2-5.6 2 7.4c1.8-2.2 2.8-5.2 2.8-8.8C48.5 15.2 41.4 9 32 9Z"
-        fill="#ffffff"
-        opacity="0.96"
-      />
-      {/* 眼睛 */}
-      <ellipse cx="25" cy="35.5" rx="2.3" ry="3.1" fill="#3b4a63" />
-      <ellipse cx="39" cy="35.5" rx="2.3" ry="3.1" fill="#3b4a63" />
-      {/* 腮红 */}
-      <circle cx="20.5" cy="40.5" r="2.4" fill="#f7b3b3" opacity="0.72" />
-      <circle cx="43.5" cy="40.5" r="2.4" fill="#f7b3b3" opacity="0.72" />
-      {/* 嘴 */}
-      <path
-        d="M29 42.5c1.6 2 4.4 2 6 0"
-        stroke="#c98b8b"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* 星星发饰 */}
-      <path d="M47.5 19.5l1.3 3 3 1.3-3 1.3-1.3 3-1.3-3-3-1.3 3-1.3Z" fill="#ffd97a" />
-    </svg>
-  );
-}
-
 /** 眼睛（划掉）：小组件编辑模式的隐藏按钮 */
 export function EyeOffIcon({ className }: { className?: string }) {
   return (

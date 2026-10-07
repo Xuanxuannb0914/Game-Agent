@@ -18,6 +18,36 @@ body {
   background: #5e7fbe;
 }
 
+/* ---------- 自定义鼠标指针 ----------
+   --cursor 由设置里的配置在客户端实时生成（src/lib/cursor.ts）；
+   变量缺失时回退到静态星形光标图，无 JS 也能生效。 */
+html,
+body {
+  cursor: var(--cursor, url("/cursor-star.svg") 16 16, url("/cursor-star.png") 16 16, auto);
+}
+
+/* 可点击控件同样用自定义指针，避免在按钮 / 链接上退回系统箭头。
+   放在 base 层：cursor-grab / cursor-nwse-resize 等工具类在 utilities 层，
+   优先级更高，拖拽与缩放仍保留各自的语义光标。 */
+@layer base {
+  button,
+  a,
+  summary,
+  [role="button"],
+  [role="switch"],
+  input[type="range"],
+  input[type="color"] {
+    cursor: var(--cursor, url("/cursor-star.svg") 16 16, url("/cursor-star.png") 16 16, auto);
+  }
+}
+
+/* 可输入区域保留 I 型光标（滑块 / 取色器除外） */
+input:not([type="range"]):not([type="color"]),
+textarea,
+[contenteditable="true"] {
+  cursor: text;
+}
+
 /* ---------- 主题变量 ---------- */
 
 [data-os] {
@@ -288,6 +318,42 @@ body {
   }
 }
 
+/* 设置弹窗：居中由外层 flex 完成，transform 留给缩放（仅 transform / opacity） */
+@keyframes dialog-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dialog-fade {
+  animation: dialog-fade 180ms ease both;
+}
+
+.dialog-pop {
+  animation: dialog-pop 220ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog-fade,
+  .dialog-pop {
+    animation: none;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -317,7 +383,6 @@ body {
   color: #fff;
   font-size: 13px;
   font-weight: 500;
-  cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
@@ -520,6 +585,22 @@ body {
 
 .bar-breathe {
   animation: bar-breathe 2s ease-in-out infinite;
+}
+
+/* 派蒙静态回退图的呼吸/漂浮（纯 transform；Live2D 模式下不渲染该元素） */
+@keyframes paimon-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.015);
+  }
+}
+
+.paimon-breathe {
+  animation: paimon-breathe 3.4s ease-in-out infinite;
+  will-change: transform;
 }
 
 /* 系统级「减弱动态效果」：所有动画/过渡瞬时完成（保留状态切换本身） */

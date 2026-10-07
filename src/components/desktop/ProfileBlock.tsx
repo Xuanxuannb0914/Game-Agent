@@ -23,7 +23,7 @@ export default function ProfileBlock() {
           体力、签到、版本进度，一站直达。
         </p>
         <button
-          className="mt-2 cursor-pointer text-[12px] font-medium tracking-[0.12em] text-[var(--ink)] underline decoration-[var(--ink-sub)]/60 underline-offset-4 transition-opacity hover:opacity-70"
+          className="mt-2 text-[12px] font-medium tracking-[0.12em] text-[var(--ink)] underline decoration-[var(--ink-sub)]/60 underline-offset-4 transition-opacity hover:opacity-70"
           title="数据接入开发中"
         >
           接入更多游戏 →

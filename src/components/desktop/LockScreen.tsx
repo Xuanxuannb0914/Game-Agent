@@ -10,6 +10,7 @@ import { LogoMark, Squircle } from "./icons";
 
 interface LockScreenProps {
   theme: ThemeId;
+  onExitStart?: () => void;
   onUnlock: (gameId: GameId | null) => void;
 }
 
@@ -23,7 +24,7 @@ function useNow(intervalMs = 10_000) {
   return now;
 }
 
-export default function LockScreen({ theme, onUnlock }: LockScreenProps) {
+export default function LockScreen({ theme, onExitStart, onUnlock }: LockScreenProps) {
   const [stage, setStage] = useState<"boot" | "locked">("boot");
   const [exiting, setExiting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -60,6 +61,8 @@ export default function LockScreen({ theme, onUnlock }: LockScreenProps) {
   const beginExit = (g: GameId | null) => {
     if (exiting) return;
     setExiting(true);
+    // 锁屏退场与桌面入场同时开始，交叉溶解成一次过渡，避免「先露出桌面再重新入场」的双重刷新
+    onExitStart?.();
     sound.play("unlock");
     window.setTimeout(() => onUnlock(g), 550);
   };

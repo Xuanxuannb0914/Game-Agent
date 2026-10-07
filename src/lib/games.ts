@@ -38,6 +38,15 @@ export interface GameMeta {
   iconFallback?: string;
   accent: string;
   badge?: GameBadge | null;
+  /** 官方网站首页：锁屏底部的游戏胶囊点击后在新标签页打开 */
+  site: string;
+  /**
+   * 本地启动路径：游戏可执行文件或快捷方式。
+   * 留空时双击桌面图标会提示「尚未配置启动路径」。
+   * Windows 例：D:\\Games\\GenshinImpact.exe，或 .lnk 快捷方式；
+   * macOS 例：/Applications/Genshin Impact.app
+   */
+  exePath?: string;
 }
 
 export const GAMES: GameMeta[] = [
@@ -50,6 +59,8 @@ export const GAMES: GameMeta[] = [
     icon: "/icons/genshin.png",
     accent: "#5B8BC9",
     badge: null,
+    site: "https://ys.mihoyo.com/",
+    exePath: "",
   },
   {
     id: "hsr",
@@ -60,6 +71,8 @@ export const GAMES: GameMeta[] = [
     icon: "/icons/hsr.png",
     accent: "#9B7EF2",
     badge: null,
+    site: "https://sr.mihoyo.com/",
+    exePath: "",
   },
   {
     id: "zzz",
@@ -70,6 +83,8 @@ export const GAMES: GameMeta[] = [
     icon: "/icons/zzz.png",
     accent: "#F28C38",
     badge: null,
+    site: "https://zzz.mihoyo.com/",
+    exePath: "",
   },
   {
     id: "wuwa",
@@ -80,6 +95,8 @@ export const GAMES: GameMeta[] = [
     icon: "/icons/wuwa.png",
     accent: "#2AA79B",
     badge: null,
+    site: "https://mc.kurogames.com/",
+    exePath: "",
   },
 ];
 

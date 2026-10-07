@@ -2,9 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { GAMES, THEMES, type GameId, type ThemeId } from "@/lib/games";
-import { useSettingsStore } from "@/stores/settingsStore";
 import RollingText from "./RollingText";
 import { BellIcon, GridIcon, LogoMark } from "./icons";
 
@@ -15,48 +13,12 @@ interface MenuBarProps {
   /** <lg 视口下组件抽屉是否展开（≥lg 常驻，按钮隐藏） */
   drawerOpen: boolean;
   onToggleDrawer: () => void;
+  /** 设置页（居中弹层）是否已打开，用于按钮高亮 */
+  settingsOpen: boolean;
+  onOpenSettings: () => void;
 }
 
-type MenuKey = "games" | "view" | "settings" | null;
-
-/** 菜单内的开关项（role=switch，右侧滑动小圆点） */
-function SwitchItem({
-  label,
-  hint,
-  checked,
-  onChange,
-}: {
-  label: string;
-  hint: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      className="menu-item"
-      onClick={() => onChange(!checked)}
-    >
-      <span className="flex min-w-0 flex-col items-start">
-        <span>{label}</span>
-        <span className="mt-0.5 text-[10px] text-[var(--ink-sub)]">{hint}</span>
-      </span>
-      <span
-        className={`relative ml-auto h-4 w-7 shrink-0 rounded-full transition-colors ${
-          checked ? "bg-[var(--accent)]" : "bg-black/20"
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-all ${
-            checked ? "left-3.5" : "left-0.5"
-          }`}
-        />
-      </span>
-    </button>
-  );
-}
+type MenuKey = "games" | "view" | null;
 
 function useClock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -104,14 +66,12 @@ export default function MenuBar({
   onOpenGame,
   drawerOpen,
   onToggleDrawer,
+  settingsOpen,
+  onOpenSettings,
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<MenuKey>(null);
   const now = useClock();
   const rootRef = useRef<HTMLElement>(null);
-  const followGame = useSettingsStore((s) => s.followGame);
-  const soundOn = useSettingsStore((s) => s.soundOn);
-  const setFollowGame = useSettingsStore((s) => s.setFollowGame);
-  const setSoundOn = useSettingsStore((s) => s.setSoundOn);
 
   useEffect(() => {
     if (!openMenu) return;
@@ -212,28 +172,17 @@ export default function MenuBar({
             </div>
           </MenuButton>
 
-          <MenuButton label="设置" open={openMenu === "settings"} onToggle={() => toggle("settings")}>
-            <SwitchItem
-              label="主题跟随游戏"
-              hint="最顶层游戏决定壁纸主题"
-              checked={followGame}
-              onChange={setFollowGame}
-            />
-            <SwitchItem
-              label="音效"
-              hint="开机 / 解锁 / 成就提示音"
-              checked={soundOn}
-              onChange={setSoundOn}
-            />
-            <div className="mx-2 my-1 border-t border-black/10" />
-            <Link className="menu-item" href="/report" onClick={() => setOpenMenu(null)}>
-              <span>年度报告</span>
-              <span className="ml-auto text-[10px] text-[var(--ink-sub)]">↗</span>
-            </Link>
-            <button className="menu-item" disabled>
-              账号绑定 · 开发中
-            </button>
-          </MenuButton>
+          <button
+            className={`rounded-md px-2.5 py-1 text-[13px] transition-colors ${
+              settingsOpen ? "bg-[var(--menu-hover)]" : "hover:bg-[var(--menu-hover)]"
+            }`}
+            onClick={() => {
+              setOpenMenu(null);
+              onOpenSettings();
+            }}
+          >
+            设置
+          </button>
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
